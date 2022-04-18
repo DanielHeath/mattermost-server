@@ -33,7 +33,6 @@ type RetryLayer struct {
 	FileInfoStore             store.FileInfoStore
 	GroupStore                store.GroupStore
 	JobStore                  store.JobStore
-	LicenseStore              store.LicenseStore
 	LinkMetadataStore         store.LinkMetadataStore
 	OAuthStore                store.OAuthStore
 	PluginStore               store.PluginStore
@@ -106,10 +105,6 @@ func (s *RetryLayer) Group() store.GroupStore {
 
 func (s *RetryLayer) Job() store.JobStore {
 	return s.JobStore
-}
-
-func (s *RetryLayer) License() store.LicenseStore {
-	return s.LicenseStore
 }
 
 func (s *RetryLayer) LinkMetadata() store.LinkMetadataStore {
@@ -265,11 +260,6 @@ type RetryLayerGroupStore struct {
 
 type RetryLayerJobStore struct {
 	store.JobStore
-	Root *RetryLayer
-}
-
-type RetryLayerLicenseStore struct {
-	store.LicenseStore
 	Root *RetryLayer
 }
 
@@ -5359,68 +5349,6 @@ func (s *RetryLayerJobStore) UpdateStatusOptimistically(id string, currentStatus
 
 }
 
-func (s *RetryLayerLicenseStore) Get(id string) (*model.LicenseRecord, error) {
-
-	tries := 0
-	for {
-		result, err := s.LicenseStore.Get(id)
-		if err == nil {
-			return result, nil
-		}
-		if !isRepeatableError(err) {
-			return result, err
-		}
-		tries++
-		if tries >= 3 {
-			err = errors.Wrap(err, "giving up after 3 consecutive repeatable transaction failures")
-			return result, err
-		}
-		timepkg.Sleep(100 * timepkg.Millisecond)
-	}
-
-}
-
-func (s *RetryLayerLicenseStore) GetAll() ([]*model.LicenseRecord, error) {
-
-	tries := 0
-	for {
-		result, err := s.LicenseStore.GetAll()
-		if err == nil {
-			return result, nil
-		}
-		if !isRepeatableError(err) {
-			return result, err
-		}
-		tries++
-		if tries >= 3 {
-			err = errors.Wrap(err, "giving up after 3 consecutive repeatable transaction failures")
-			return result, err
-		}
-		timepkg.Sleep(100 * timepkg.Millisecond)
-	}
-
-}
-
-func (s *RetryLayerLicenseStore) Save(license *model.LicenseRecord) (*model.LicenseRecord, error) {
-
-	tries := 0
-	for {
-		result, err := s.LicenseStore.Save(license)
-		if err == nil {
-			return result, nil
-		}
-		if !isRepeatableError(err) {
-			return result, err
-		}
-		tries++
-		if tries >= 3 {
-			err = errors.Wrap(err, "giving up after 3 consecutive repeatable transaction failures")
-			return result, err
-		}
-		timepkg.Sleep(100 * timepkg.Millisecond)
-	}
-
-}
 
 func (s *RetryLayerLinkMetadataStore) Get(url string, timestamp int64) (*model.LinkMetadata, error) {
 
@@ -13635,7 +13563,6 @@ func New(childStore store.Store) *RetryLayer {
 	newStore.FileInfoStore = &RetryLayerFileInfoStore{FileInfoStore: childStore.FileInfo(), Root: &newStore}
 	newStore.GroupStore = &RetryLayerGroupStore{GroupStore: childStore.Group(), Root: &newStore}
 	newStore.JobStore = &RetryLayerJobStore{JobStore: childStore.Job(), Root: &newStore}
-	newStore.LicenseStore = &RetryLayerLicenseStore{LicenseStore: childStore.License(), Root: &newStore}
 	newStore.LinkMetadataStore = &RetryLayerLinkMetadataStore{LinkMetadataStore: childStore.LinkMetadata(), Root: &newStore}
 	newStore.OAuthStore = &RetryLayerOAuthStore{OAuthStore: childStore.OAuth(), Root: &newStore}
 	newStore.PluginStore = &RetryLayerPluginStore{PluginStore: childStore.Plugin(), Root: &newStore}

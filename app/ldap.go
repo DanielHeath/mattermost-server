@@ -19,7 +19,7 @@ import (
 func (a *App) SyncLdap(includeRemovedMembers bool) {
 	a.Srv().Go(func() {
 
-		if license := a.Srv().License(); license != nil && *license.Features.LDAP && *a.Config().LdapSettings.EnableSync {
+		if *a.Config().LdapSettings.EnableSync {
 			if ldapI := a.Ldap(); ldapI != nil {
 				ldapI.StartSynchronizeJob(false, includeRemovedMembers)
 			} else {
@@ -30,8 +30,7 @@ func (a *App) SyncLdap(includeRemovedMembers bool) {
 }
 
 func (a *App) TestLdap() *model.AppError {
-	license := a.Srv().License()
-	if ldapI := a.Ldap(); ldapI != nil && license != nil && *license.Features.LDAP && (*a.Config().LdapSettings.Enable || *a.Config().LdapSettings.EnableSync) {
+	if ldapI := a.Ldap(); ldapI != nil && (*a.Config().LdapSettings.Enable || *a.Config().LdapSettings.EnableSync) {
 		if err := ldapI.RunTest(); err != nil {
 			err.StatusCode = 500
 			return err
@@ -83,7 +82,7 @@ func (a *App) GetAllLdapGroupsPage(page int, perPage int, opts model.LdapGroupSe
 }
 
 func (a *App) SwitchEmailToLdap(email, password, code, ldapLoginId, ldapPassword string) (string, *model.AppError) {
-	if a.Srv().License() != nil && !*a.Config().ServiceSettings.ExperimentalEnableAuthenticationTransfer {
+	if !*a.Config().ServiceSettings.ExperimentalEnableAuthenticationTransfer {
 		return "", model.NewAppError("emailToLdap", "api.user.email_to_ldap.not_available.app_error", nil, "", http.StatusForbidden)
 	}
 
@@ -119,7 +118,7 @@ func (a *App) SwitchEmailToLdap(email, password, code, ldapLoginId, ldapPassword
 }
 
 func (a *App) SwitchLdapToEmail(ldapPassword, code, email, newPassword string) (string, *model.AppError) {
-	if a.Srv().License() != nil && !*a.Config().ServiceSettings.ExperimentalEnableAuthenticationTransfer {
+	if !*a.Config().ServiceSettings.ExperimentalEnableAuthenticationTransfer {
 		return "", model.NewAppError("ldapToEmail", "api.user.ldap_to_email.not_available.app_error", nil, "", http.StatusForbidden)
 	}
 

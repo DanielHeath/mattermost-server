@@ -77,7 +77,6 @@ const (
 	TrackWarnMetrics             = "warn_metrics"
 
 	TrackActivity = "activity"
-	TrackLicense  = "license"
 	TrackServer   = "server"
 	TrackPlugins  = "plugins"
 )
@@ -87,7 +86,6 @@ type ServerIface interface {
 	IsLeader() bool
 	HTTPService() httpservice.HTTPService
 	GetPluginsEnvironment() *plugin.Environment
-	License() *model.License
 	GetRoleByName(context.Context, string) (*model.Role, *model.AppError)
 	GetSchemes(string, int, int) ([]*model.Scheme, *model.AppError)
 }
@@ -154,7 +152,6 @@ func (ts *TelemetryService) sendDailyTelemetry(override bool) {
 		ts.initRudder(config.DataplaneURL, config.RudderKey)
 		ts.trackActivity()
 		ts.trackConfig()
-		ts.trackLicense()
 		ts.trackPlugins()
 		ts.trackServer()
 		ts.trackPermissions()
@@ -823,27 +820,6 @@ func (ts *TelemetryService) trackConfig() {
 	ts.SendTelemetry(TrackFeatureFlags, interfaceFlags)
 }
 
-func (ts *TelemetryService) trackLicense() {
-	if license := ts.srv.License(); license != nil {
-		data := map[string]interface{}{
-			"customer_id": license.Customer.Id,
-			"license_id":  license.Id,
-			"issued":      license.IssuedAt,
-			"start":       license.StartsAt,
-			"expire":      license.ExpiresAt,
-			"users":       *license.Features.Users,
-			"edition":     license.SkuShortName,
-		}
-
-		features := license.Features.ToMap()
-		for featureName, featureValue := range features {
-			data["feature_"+featureName] = featureValue
-		}
-
-		ts.SendTelemetry(TrackLicense, data)
-	}
-}
-
 func (ts *TelemetryService) trackPlugins() {
 	pluginsEnvironment := ts.srv.GetPluginsEnvironment()
 	if pluginsEnvironment == nil {
@@ -1398,14 +1374,8 @@ func (ts *TelemetryService) getAllMarketplaceplugins(marketplaceURL string) ([]*
 		ServerVersion: model.CurrentVersion,
 	}
 
-	license := ts.srv.License()
-	if license != nil && *license.Features.EnterprisePlugins {
-		filter.EnterprisePlugins = true
-	}
-
-	if model.BuildEnterpriseReady == "true" {
-		filter.BuildEnterpriseReady = true
-	}
+	filter.EnterprisePlugins = false
+	filter.BuildEnterpriseReady = false
 
 	return marketplaceClient.GetPlugins(filter)
 }

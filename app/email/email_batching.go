@@ -236,9 +236,7 @@ func (es *Service) sendBatchedEmailNotification(userID string, notifications []*
 	embeddedFiles := make(map[string]io.Reader)
 
 	emailNotificationContentsType := model.EmailNotificationContentsFull
-	if license := es.license(); license != nil && *license.Features.EmailNotificationContents {
-		emailNotificationContentsType = *es.config().EmailSettings.EmailNotificationContentsType
-	}
+	emailNotificationContentsType = *es.config().EmailSettings.EmailNotificationContentsType
 
 	// check if user has CRT set to ON
 	threadsEnabled := false

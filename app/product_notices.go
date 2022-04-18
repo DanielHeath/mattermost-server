@@ -249,8 +249,8 @@ func (a *App) GetProductNotices(c *request.Context, userID, teamID string, clien
 		return nil, model.NewAppError("GetProductNotices", "api.system.update_viewed_notices.failed", nil, err.Error(), http.StatusBadRequest)
 	}
 
-	sku := a.Srv().ClientLicense()["SkuShortName"]
-	isCloud := a.Srv().License() != nil && *a.Srv().License().Features.Cloud
+	sku := "unlicensed"
+	isCloud := false
 	dbName := *a.Config().SqlSettings.DriverName
 
 	var searchEngineName, searchEngineVersion string

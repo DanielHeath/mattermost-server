@@ -319,22 +319,6 @@ func (_m *Store) Job() store.JobStore {
 	return r0
 }
 
-// License provides a mock function with given fields:
-func (_m *Store) License() store.LicenseStore {
-	ret := _m.Called()
-
-	var r0 store.LicenseStore
-	if rf, ok := ret.Get(0).(func() store.LicenseStore); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(store.LicenseStore)
-		}
-	}
-
-	return r0
-}
-
 // LinkMetadata provides a mock function with given fields:
 func (_m *Store) LinkMetadata() store.LinkMetadataStore {
 	ret := _m.Called()

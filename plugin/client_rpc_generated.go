@@ -1029,33 +1029,6 @@ func (s *apiRPCServer) GetBundlePath(args *Z_GetBundlePathArgs, returns *Z_GetBu
 	return nil
 }
 
-type Z_GetLicenseArgs struct {
-}
-
-type Z_GetLicenseReturns struct {
-	A *model.License
-}
-
-func (g *apiRPCClient) GetLicense() *model.License {
-	_args := &Z_GetLicenseArgs{}
-	_returns := &Z_GetLicenseReturns{}
-	if err := g.client.Call("Plugin.GetLicense", _args, _returns); err != nil {
-		log.Printf("RPC call to GetLicense API failed: %s", err.Error())
-	}
-	return _returns.A
-}
-
-func (s *apiRPCServer) GetLicense(args *Z_GetLicenseArgs, returns *Z_GetLicenseReturns) error {
-	if hook, ok := s.impl.(interface {
-		GetLicense() *model.License
-	}); ok {
-		returns.A = hook.GetLicense()
-	} else {
-		return encodableError(fmt.Errorf("API GetLicense called but not implemented."))
-	}
-	return nil
-}
-
 type Z_IsEnterpriseReadyArgs struct {
 }
 

@@ -98,13 +98,6 @@ func (api *apiTimerLayer) GetBundlePath() (string, error) {
 	return _returnsA, _returnsB
 }
 
-func (api *apiTimerLayer) GetLicense() *model.License {
-	startTime := timePkg.Now()
-	_returnsA := api.apiImpl.GetLicense()
-	api.recordTime(startTime, "GetLicense", true)
-	return _returnsA
-}
-
 func (api *apiTimerLayer) IsEnterpriseReady() bool {
 	startTime := timePkg.Now()
 	_returnsA := api.apiImpl.IsEnterpriseReady()
@@ -1216,12 +1209,5 @@ func (api *apiTimerLayer) PublishPluginClusterEvent(ev model.PluginClusterEvent,
 	startTime := timePkg.Now()
 	_returnsA := api.apiImpl.PublishPluginClusterEvent(ev, opts)
 	api.recordTime(startTime, "PublishPluginClusterEvent", _returnsA == nil)
-	return _returnsA
-}
-
-func (api *apiTimerLayer) RequestTrialLicense(requesterID string, users int, termsAccepted bool, receiveEmailsAccepted bool) *model.AppError {
-	startTime := timePkg.Now()
-	_returnsA := api.apiImpl.RequestTrialLicense(requesterID, users, termsAccepted, receiveEmailsAccepted)
-	api.recordTime(startTime, "RequestTrialLicense", _returnsA == nil)
 	return _returnsA
 }

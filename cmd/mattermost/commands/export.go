@@ -149,7 +149,6 @@ func scheduleExportCmdF(command *cobra.Command, args []string) error {
 func buildExportCmdF(format string) func(command *cobra.Command, args []string) error {
 	return func(command *cobra.Command, args []string) error {
 		a, err := InitDBCommandContextCobra(command)
-		license := a.Srv().License()
 		if err != nil {
 			return err
 		}
@@ -163,7 +162,7 @@ func buildExportCmdF(format string) func(command *cobra.Command, args []string) 
 			return errors.New("exportFrom must be a positive integer")
 		}
 
-		if a.MessageExport() == nil || license == nil || !*license.Features.MessageExport {
+		if a.MessageExport() == nil {
 			return errors.New("message export feature not available")
 		}
 

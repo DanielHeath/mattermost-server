@@ -119,9 +119,8 @@ func (s *Server) DoSecurityUpdateCheck() {
 
 					for _, user := range users {
 						mlog.Info("Sending security bulletin", mlog.String("bulletin_id", bulletin.Id), mlog.String("user_email", user.Email))
-						license := s.License()
 						mailConfig := s.MailServiceConfig()
-						mail.SendMailUsingConfig(user.Email, i18n.T("mattermost.bulletin.subject"), string(body), mailConfig, license != nil && *license.Features.Compliance, "")
+						mail.SendMailUsingConfig(user.Email, i18n.T("mattermost.bulletin.subject"), string(body), mailConfig, true, "")
 					}
 
 					bulletinSeen := &model.System{Name: "SecurityBulletin_" + bulletin.Id, Value: bulletin.Id}

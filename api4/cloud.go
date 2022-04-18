@@ -43,11 +43,6 @@ func (api *API) InitCloud() {
 }
 
 func getSubscription(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.getSubscription", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
-
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleReadBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleReadBilling)
 		return
@@ -69,10 +64,6 @@ func getSubscription(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func changeSubscription(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.changeSubscription", "api.cloud.license_error", nil, "", http.StatusInternalServerError)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteBilling)
@@ -113,10 +104,6 @@ func changeSubscription(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func getCloudProducts(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.getCloudProducts", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleReadBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleReadBilling)
@@ -142,10 +129,6 @@ func getCloudProducts(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func getCloudCustomer(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.getCloudCustomer", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleReadBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleReadBilling)
@@ -168,10 +151,6 @@ func getCloudCustomer(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func updateCloudCustomer(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.updateCloudCustomer", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteBilling)
@@ -206,10 +185,6 @@ func updateCloudCustomer(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func updateCloudCustomerAddress(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.updateCloudCustomerAddress", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteBilling)
@@ -244,10 +219,6 @@ func updateCloudCustomerAddress(c *Context, w http.ResponseWriter, r *http.Reque
 }
 
 func createCustomerPayment(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.createCustomerPayment", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteBilling)
@@ -275,10 +246,6 @@ func createCustomerPayment(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func confirmCustomerPayment(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.confirmCustomerPayment", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteBilling)
@@ -312,10 +279,6 @@ func confirmCustomerPayment(c *Context, w http.ResponseWriter, r *http.Request) 
 }
 
 func getInvoicesForSubscription(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.getInvoicesForSubscription", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleReadBilling) {
 		c.SetPermissionError(model.PermissionSysconsoleReadBilling)
@@ -338,10 +301,6 @@ func getInvoicesForSubscription(c *Context, w http.ResponseWriter, r *http.Reque
 }
 
 func getSubscriptionInvoicePDF(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.getSubscriptionInvoicePDF", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	c.RequireInvoiceId()
 	if c.Err != nil {
@@ -373,10 +332,6 @@ func getSubscriptionInvoicePDF(c *Context, w http.ResponseWriter, r *http.Reques
 }
 
 func handleCWSWebhook(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("Api4.handleCWSWebhook", "api.cloud.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {

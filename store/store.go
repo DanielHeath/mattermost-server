@@ -38,7 +38,6 @@ type Store interface {
 	Command() CommandStore
 	CommandWebhook() CommandWebhookStore
 	Preference() PreferenceStore
-	License() LicenseStore
 	Token() TokenStore
 	Emoji() EmojiStore
 	Status() StatusStore
@@ -602,12 +601,6 @@ type PreferenceStore interface {
 	PermanentDeleteByUser(userID string) error
 	DeleteOrphanedRows(limit int) (deleted int64, err error)
 	CleanupFlagsBatch(limit int64) (int64, error)
-}
-
-type LicenseStore interface {
-	Save(license *model.LicenseRecord) (*model.LicenseRecord, error)
-	Get(id string) (*model.LicenseRecord, error)
-	GetAll() ([]*model.LicenseRecord, error)
 }
 
 type TokenStore interface {

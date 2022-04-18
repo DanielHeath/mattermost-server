@@ -30,7 +30,6 @@ type OpenTracingLayer struct {
 	FileInfoStore             store.FileInfoStore
 	GroupStore                store.GroupStore
 	JobStore                  store.JobStore
-	LicenseStore              store.LicenseStore
 	LinkMetadataStore         store.LinkMetadataStore
 	OAuthStore                store.OAuthStore
 	PluginStore               store.PluginStore
@@ -103,10 +102,6 @@ func (s *OpenTracingLayer) Group() store.GroupStore {
 
 func (s *OpenTracingLayer) Job() store.JobStore {
 	return s.JobStore
-}
-
-func (s *OpenTracingLayer) License() store.LicenseStore {
-	return s.LicenseStore
 }
 
 func (s *OpenTracingLayer) LinkMetadata() store.LinkMetadataStore {
@@ -262,11 +257,6 @@ type OpenTracingLayerGroupStore struct {
 
 type OpenTracingLayerJobStore struct {
 	store.JobStore
-	Root *OpenTracingLayer
-}
-
-type OpenTracingLayerLicenseStore struct {
-	store.LicenseStore
 	Root *OpenTracingLayer
 }
 
@@ -4727,60 +4717,6 @@ func (s *OpenTracingLayerJobStore) UpdateStatusOptimistically(id string, current
 
 	defer span.Finish()
 	result, err := s.JobStore.UpdateStatusOptimistically(id, currentStatus, newStatus)
-	if err != nil {
-		span.LogFields(spanlog.Error(err))
-		ext.Error.Set(span, true)
-	}
-
-	return result, err
-}
-
-func (s *OpenTracingLayerLicenseStore) Get(id string) (*model.LicenseRecord, error) {
-	origCtx := s.Root.Store.Context()
-	span, newCtx := tracing.StartSpanWithParentByContext(s.Root.Store.Context(), "LicenseStore.Get")
-	s.Root.Store.SetContext(newCtx)
-	defer func() {
-		s.Root.Store.SetContext(origCtx)
-	}()
-
-	defer span.Finish()
-	result, err := s.LicenseStore.Get(id)
-	if err != nil {
-		span.LogFields(spanlog.Error(err))
-		ext.Error.Set(span, true)
-	}
-
-	return result, err
-}
-
-func (s *OpenTracingLayerLicenseStore) GetAll() ([]*model.LicenseRecord, error) {
-	origCtx := s.Root.Store.Context()
-	span, newCtx := tracing.StartSpanWithParentByContext(s.Root.Store.Context(), "LicenseStore.GetAll")
-	s.Root.Store.SetContext(newCtx)
-	defer func() {
-		s.Root.Store.SetContext(origCtx)
-	}()
-
-	defer span.Finish()
-	result, err := s.LicenseStore.GetAll()
-	if err != nil {
-		span.LogFields(spanlog.Error(err))
-		ext.Error.Set(span, true)
-	}
-
-	return result, err
-}
-
-func (s *OpenTracingLayerLicenseStore) Save(license *model.LicenseRecord) (*model.LicenseRecord, error) {
-	origCtx := s.Root.Store.Context()
-	span, newCtx := tracing.StartSpanWithParentByContext(s.Root.Store.Context(), "LicenseStore.Save")
-	s.Root.Store.SetContext(newCtx)
-	defer func() {
-		s.Root.Store.SetContext(origCtx)
-	}()
-
-	defer span.Finish()
-	result, err := s.LicenseStore.Save(license)
 	if err != nil {
 		span.LogFields(spanlog.Error(err))
 		ext.Error.Set(span, true)
@@ -11970,7 +11906,6 @@ func New(childStore store.Store, ctx context.Context) *OpenTracingLayer {
 	newStore.FileInfoStore = &OpenTracingLayerFileInfoStore{FileInfoStore: childStore.FileInfo(), Root: &newStore}
 	newStore.GroupStore = &OpenTracingLayerGroupStore{GroupStore: childStore.Group(), Root: &newStore}
 	newStore.JobStore = &OpenTracingLayerJobStore{JobStore: childStore.Job(), Root: &newStore}
-	newStore.LicenseStore = &OpenTracingLayerLicenseStore{LicenseStore: childStore.License(), Root: &newStore}
 	newStore.LinkMetadataStore = &OpenTracingLayerLinkMetadataStore{LinkMetadataStore: childStore.LinkMetadata(), Root: &newStore}
 	newStore.OAuthStore = &OpenTracingLayerOAuthStore{OAuthStore: childStore.OAuth(), Root: &newStore}
 	newStore.PluginStore = &OpenTracingLayerPluginStore{PluginStore: childStore.Plugin(), Root: &newStore}

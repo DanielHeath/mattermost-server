@@ -111,23 +111,13 @@ func (h *MainHelper) setupStore(withReadReplica bool) {
 }
 
 func (h *MainHelper) ToggleReplicasOff() {
-	if h.SQLStore.GetLicense() == nil {
-		panic("expecting a license to use this")
-	}
 	h.Settings.DataSourceReplicas = []string{}
-	lic := h.SQLStore.GetLicense()
 	h.SQLStore = sqlstore.New(*h.Settings, nil)
-	h.SQLStore.UpdateLicense(lic)
 }
 
 func (h *MainHelper) ToggleReplicasOn() {
-	if h.SQLStore.GetLicense() == nil {
-		panic("expecting a license to use this")
-	}
 	h.Settings.DataSourceReplicas = h.replicas
-	lic := h.SQLStore.GetLicense()
 	h.SQLStore = sqlstore.New(*h.Settings, nil)
-	h.SQLStore.UpdateLicense(lic)
 }
 
 func (h *MainHelper) setupResources() {

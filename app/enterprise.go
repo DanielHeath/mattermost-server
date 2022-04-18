@@ -105,12 +105,6 @@ func RegisterNotificationInterface(f func(*App) einterfaces.NotificationInterfac
 	notificationInterface = f
 }
 
-var licenseInterface func(*Server) einterfaces.LicenseInterface
-
-func RegisterLicenseInterface(f func(*Server) einterfaces.LicenseInterface) {
-	licenseInterface = f
-}
-
 func (s *Server) initEnterprise() {
 	if metricsInterface != nil {
 		s.Metrics = metricsInterface(s)
@@ -121,10 +115,6 @@ func (s *Server) initEnterprise() {
 	}
 	if elasticsearchInterface != nil {
 		s.SearchEngine.RegisterElasticsearchEngine(elasticsearchInterface(s))
-	}
-
-	if licenseInterface != nil {
-		s.LicenseManager = licenseInterface(s)
 	}
 
 	if cloudInterface != nil {

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mattermost/mattermost-server/v6/app/request"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/shared/i18n"
 	"github.com/mattermost/mattermost-server/v6/shared/mail"
@@ -238,36 +237,5 @@ func (a *App) setWarnMetricsStatusForId(warnMetricId string, status string) *mod
 	}); err != nil {
 		return model.NewAppError("setWarnMetricsStatusForId", "app.system.warn_metric.store.app_error", map[string]interface{}{"WarnMetricName": warnMetricId}, err.Error(), http.StatusInternalServerError)
 	}
-	return nil
-}
-
-func (a *App) RequestLicenseAndAckWarnMetric(c *request.Context, warnMetricId string, isBot bool) *model.AppError {
-	if *a.Config().ExperimentalSettings.RestrictSystemAdmin {
-		return model.NewAppError("RequestLicenseAndAckWarnMetric", "api.restricted_system_admin", nil, "", http.StatusForbidden)
-	}
-
-	currentUser, appErr := a.GetUser(c.Session().UserId)
-	if appErr != nil {
-		return appErr
-	}
-
-	registeredUsersCount, err := a.Srv().Store.User().Count(model.UserCountOptions{})
-	if err != nil {
-		return model.NewAppError("RequestLicenseAndAckWarnMetric", "api.license.request_trial_license.fail_get_user_count.app_error", nil, err.Error(), http.StatusBadRequest)
-	}
-
-	if err := a.Channels().RequestTrialLicense(c.Session().UserId, int(registeredUsersCount), true, true); err != nil {
-		// turn off warn metric warning even in case of StartTrial failure
-		if nerr := a.setWarnMetricsStatusAndNotify(warnMetricId); nerr != nil {
-			return nerr
-		}
-
-		return err
-	}
-
-	if appErr = a.NotifyAndSetWarnMetricAck(warnMetricId, currentUser, true, isBot); appErr != nil {
-		return appErr
-	}
-
 	return nil
 }

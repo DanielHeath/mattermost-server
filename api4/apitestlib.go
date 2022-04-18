@@ -187,12 +187,6 @@ func setupTestHelper(dbStore store.Store, searchEngine *searchengine.Broker, ent
 	web.New(th.App.Srv())
 	wsapi.Init(th.App.Srv())
 
-	if enterprise {
-		th.App.Srv().SetLicense(model.NewTestLicense())
-	} else {
-		th.App.Srv().SetLicense(nil)
-	}
-
 	th.Client = th.CreateClient()
 	th.GraphQLClient = newGraphQLClient(fmt.Sprintf("http://localhost:%v", th.App.Srv().ListenAddr.Port))
 	th.SystemAdminClient = th.CreateClient()
@@ -640,7 +634,6 @@ func (th *TestHelper) SetupLdapConfig() {
 		*cfg.LdapSettings.GroupIdAttribute = "entRyUuId"
 		*cfg.LdapSettings.MaxPageSize = 0
 	})
-	th.App.Srv().SetLicense(model.NewTestLicense("ldap"))
 }
 
 func (th *TestHelper) SetupSamlConfig() {
@@ -665,7 +658,6 @@ func (th *TestHelper) SetupSamlConfig() {
 		*cfg.SamlSettings.SignatureAlgorithm = model.SamlSettingsSignatureAlgorithmSha256
 		*cfg.SamlSettings.CanonicalAlgorithm = model.SamlSettingsCanonicalAlgorithmC14n11
 	})
-	th.App.Srv().SetLicense(model.NewTestLicense("saml"))
 }
 
 func (th *TestHelper) CreatePublicChannel() *model.Channel {

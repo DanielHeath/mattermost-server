@@ -136,10 +136,6 @@ func createUser(c *Context, w http.ResponseWriter, r *http.Request) {
 		auditRec.AddMeta("token_type", token.Type)
 
 		if token.Type == app.TokenTypeGuestInvitation {
-			if c.App.Channels().License() == nil {
-				c.Err = model.NewAppError("CreateUserWithToken", "api.user.create_user.guest_accounts.license.app_error", nil, "", http.StatusBadRequest)
-				return
-			}
 			if !*c.App.Config().GuestAccountsSettings.Enable {
 				c.Err = model.NewAppError("CreateUserWithToken", "api.user.create_user.guest_accounts.disabled.app_error", nil, "", http.StatusBadRequest)
 				return
@@ -1377,18 +1373,6 @@ func updateUserRoles(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// require license feature to assign "new system roles"
-	for _, roleName := range strings.Fields(newRoles) {
-		for _, id := range model.NewSystemRoleIDs {
-			if roleName == id {
-				if license := c.App.Channels().License(); license == nil || !*license.Features.CustomPermissionsSchemes {
-					c.Err = model.NewAppError("updateUserRoles", "api.user.update_user_roles.license.app_error", nil, "", http.StatusBadRequest)
-					return
-				}
-			}
-		}
-	}
-
 	auditRec := c.MakeAuditRecord("updateUserRoles", audit.Fail)
 	defer c.LogAuditRec(auditRec)
 	auditRec.AddMeta("roles", newRoles)
@@ -1801,10 +1785,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	ldapOnly := props["ldap_only"] == "true"
 
 	if *c.App.Config().ExperimentalSettings.ClientSideCertEnable {
-		if license := c.App.Channels().License(); license == nil || !*license.Features.FutureFeatures {
-			c.Err = model.NewAppError("ClientSideCertNotAllowed", "api.user.login.client_side_cert.license.app_error", nil, "", http.StatusBadRequest)
-			return
-		}
 		certPem, certSubject, certEmail := c.App.CheckForClientSideCert(r)
 		mlog.Debug("Client Cert", mlog.String("cert_subject", certSubject), mlog.String("cert_email", certEmail))
 
@@ -1835,10 +1815,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	auditRec.AddMeta("user", user)
 
 	if user.IsGuest() {
-		if c.App.Channels().License() == nil {
-			c.Err = model.NewAppError("login", "api.user.login.guest_accounts.license.error", nil, "", http.StatusUnauthorized)
-			return
-		}
 		if !*c.App.Config().GuestAccountsSettings.Enable {
 			c.Err = model.NewAppError("login", "api.user.login.guest_accounts.disabled.error", nil, "", http.StatusUnauthorized)
 			return
@@ -1857,11 +1833,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get(model.HeaderRequestedWith) == model.HeaderRequestedWithXML {
 		c.App.AttachSessionCookies(c.AppContext, w, r)
-	}
-
-	// For context see: https://mattermost.atlassian.net/browse/MM-39583
-	if c.App.Channels().License() != nil && *c.App.Channels().License().Features.Cloud {
-		c.App.AttachCloudSessionCookie(c.AppContext, w, r)
 	}
 
 	userTermsOfService, err := c.App.GetUserTermsOfService(user.Id)
@@ -1884,10 +1855,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func loginCWS(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("loginCWS", "api.user.login_cws.license.error", nil, "", http.StatusUnauthorized)
-		return
-	}
 	r.ParseForm()
 	var loginID string
 	var token string
@@ -2654,11 +2621,6 @@ func demoteUserToGuest(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c.App.Channels().License() == nil {
-		c.Err = model.NewAppError("Api4.demoteUserToGuest", "api.team.demote_user_to_guest.license.error", nil, "", http.StatusNotImplemented)
-		return
-	}
-
 	if !*c.App.Config().GuestAccountsSettings.Enable {
 		c.Err = model.NewAppError("Api4.demoteUserToGuest", "api.team.demote_user_to_guest.disabled.error", nil, "", http.StatusNotImplemented)
 		return
@@ -2885,11 +2847,6 @@ func migrateAuthToLDAP(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAP {
-		c.Err = model.NewAppError("api.migrateAuthToLDAP", "api.admin.ldap.not_available.app_error", nil, "", http.StatusNotImplemented)
-		return
-	}
-
 	// Email auth in Mattermost system is represented by ""
 	if from == "email" {
 		from = ""
@@ -2941,11 +2898,6 @@ func migrateAuthToSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
 		c.SetPermissionError(model.PermissionManageSystem)
-		return
-	}
-
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.SAML {
-		c.Err = model.NewAppError("api.migrateAuthToSaml", "api.admin.saml.not_available.app_error", nil, "", http.StatusNotImplemented)
 		return
 	}
 

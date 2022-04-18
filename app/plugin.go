@@ -503,19 +503,6 @@ func (a *App) GetMarketplacePlugins(filter *model.MarketplacePluginFilter) ([]*m
 		plugins = p
 	}
 
-	// Some plugin don't work on cloud. The remote Marketplace is aware of this fact,
-	// but prepackaged plugins are not. Hence, on a cloud installation prepackaged plugins
-	// shouldn't be shown in the Marketplace modal.
-	// This is a short term fix. The long term solution is to have a separate set of
-	// prepacked plugins for cloud: https://mattermost.atlassian.net/browse/MM-31331.
-	license := a.Srv().License()
-	if license == nil || !*license.Features.Cloud {
-		appErr := a.mergePrepackagedPlugins(plugins)
-		if appErr != nil {
-			return nil, appErr
-		}
-	}
-
 	appErr := a.mergeLocalPlugins(plugins)
 	if appErr != nil {
 		return nil, appErr
@@ -729,15 +716,6 @@ func (a *App) getBaseMarketplaceFilter() *model.MarketplacePluginFilter {
 func (ch *Channels) getBaseMarketplaceFilter() *model.MarketplacePluginFilter {
 	filter := &model.MarketplacePluginFilter{
 		ServerVersion: model.CurrentVersion,
-	}
-
-	license := ch.srv.License()
-	if license != nil && license.HasEnterpriseMarketplacePlugins() {
-		filter.EnterprisePlugins = true
-	}
-
-	if license != nil && *license.Features.Cloud {
-		filter.Cloud = true
 	}
 
 	if model.BuildEnterpriseReady == "true" {
@@ -980,8 +958,7 @@ func (ch *Channels) installFeatureFlagPlugins() {
 
 		if version != "" && version != "control" {
 			// If we are on-prem skip installation if this is a downgrade
-			license := ch.srv.License()
-			inCloud := license != nil && *license.Features.Cloud
+			inCloud := false
 			if !inCloud && pluginExists {
 				parsedVersion, err := semver.Parse(version)
 				if err != nil {

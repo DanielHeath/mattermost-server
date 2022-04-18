@@ -1169,10 +1169,6 @@ func teamExists(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func importTeam(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() != nil && *c.App.Channels().License().Features.Cloud {
-		c.Err = model.NewAppError("importTeam", "api.restricted_system_admin", nil, "", http.StatusForbidden)
-		return
-	}
 
 	c.RequireTeamId()
 	if c.Err != nil {
@@ -1369,10 +1365,6 @@ func inviteUsersToTeam(c *Context, w http.ResponseWriter, r *http.Request) {
 
 func inviteGuestsToChannels(c *Context, w http.ResponseWriter, r *http.Request) {
 	graceful := r.URL.Query().Get("graceful") != ""
-	if c.App.Channels().License() == nil {
-		c.Err = model.NewAppError("Api4.InviteGuestsToChannels", "api.team.invate_guests_to_channels.license.error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !*c.App.Config().GuestAccountsSettings.Enable {
 		c.Err = model.NewAppError("Api4.InviteGuestsToChannels", "api.team.invate_guests_to_channels.disabled.error", nil, "", http.StatusNotImplemented)
@@ -1625,11 +1617,6 @@ func updateTeamScheme(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	auditRec := c.MakeAuditRecord("updateTeamScheme", audit.Fail)
 	defer c.LogAuditRec(auditRec)
-
-	if c.App.Channels().License() == nil {
-		c.Err = model.NewAppError("Api4.UpdateTeamScheme", "api.team.update_team_scheme.license.error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleWriteUserManagementPermissions) {
 		c.SetPermissionError(model.PermissionSysconsoleWriteUserManagementPermissions)

@@ -89,12 +89,6 @@ func generateSupportPacket(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Checking to see if the server has a e10 or e20 license (this feature is only permitted for servers with licenses)
-	if c.App.Channels().License() == nil {
-		c.Err = model.NewAppError("Api4.generateSupportPacket", "api.no_license", nil, "", http.StatusForbidden)
-		return
-	}
-
 	fileDatas := c.App.GenerateSupportPacket()
 
 	// Constructing the ZIP file name as per spec (mattermost_support_packet_YYYY-MM-DD-HH-MM.zip)
@@ -771,12 +765,6 @@ func getWarnMetricsStatus(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	license := c.App.Channels().License()
-	if license != nil {
-		mlog.Debug("License is present, skip.")
-		return
-	}
-
 	status, err := c.App.GetWarnMetricsStatus()
 	if err != nil {
 		c.Err = err
@@ -798,12 +786,6 @@ func sendWarnMetricAckEmail(c *Context, w http.ResponseWriter, r *http.Request) 
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
 		c.SetPermissionError(model.PermissionManageSystem)
-		return
-	}
-
-	license := c.App.Channels().License()
-	if license != nil {
-		mlog.Debug("License is present, skip.")
 		return
 	}
 
@@ -840,17 +822,6 @@ func requestTrialLicenseAndAckWarnMetric(c *Context, w http.ResponseWriter, r *h
 
 	if model.BuildEnterpriseReady != "true" {
 		mlog.Debug("Not Enterprise Edition, skip.")
-		return
-	}
-
-	license := c.App.Channels().License()
-	if license != nil {
-		mlog.Debug("License is present, skip.")
-		return
-	}
-
-	if err := c.App.RequestLicenseAndAckWarnMetric(c.AppContext, c.Params.WarnMetricId, false); err != nil {
-		c.Err = err
 		return
 	}
 

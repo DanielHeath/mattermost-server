@@ -41,9 +41,8 @@ func condenseSiteURL(siteURL string) string {
 }
 
 type Service struct {
-	config  func() *model.Config
-	goFn    func(f func())
-	license func() *model.License
+	config func() *model.Config
+	goFn   func(f func())
 
 	userService *users.UserService
 	store       store.Store
@@ -55,9 +54,8 @@ type Service struct {
 }
 
 type ServiceConfig struct {
-	ConfigFn  func() *model.Config
-	LicenseFn func() *model.License
-	GoFn      func(f func())
+	ConfigFn func() *model.Config
+	GoFn     func(f func())
 
 	TemplatesContainer *templates.Container
 	UserService        *users.UserService
@@ -71,7 +69,6 @@ func NewService(config ServiceConfig) (*Service, error) {
 	service := &Service{
 		config:             config.ConfigFn,
 		templatesContainer: config.TemplatesContainer,
-		license:            config.LicenseFn,
 		goFn:               config.GoFn,
 		store:              config.Store,
 		userService:        config.UserService,
@@ -84,7 +81,7 @@ func NewService(config ServiceConfig) (*Service, error) {
 }
 
 func (c *ServiceConfig) validate() error {
-	if c.ConfigFn == nil || c.GoFn == nil || c.Store == nil || c.LicenseFn == nil || c.TemplatesContainer == nil {
+	if c.ConfigFn == nil || c.GoFn == nil || c.Store == nil || c.TemplatesContainer == nil {
 		return errors.New("invalid service config")
 	}
 	return nil

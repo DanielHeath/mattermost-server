@@ -42,10 +42,6 @@ func (api *API) InitLdap() {
 }
 
 func syncLdap(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAP {
-		c.Err = model.NewAppError("Api4.syncLdap", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	type LdapSyncOptions struct {
 		IncludeRemovedMembers bool `json:"include_removed_members"`
@@ -68,11 +64,6 @@ func syncLdap(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func testLdap(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAP {
-		c.Err = model.NewAppError("Api4.testLdap", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
-
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionTestLdap) {
 		c.SetPermissionError(model.PermissionTestLdap)
 		return
@@ -89,11 +80,6 @@ func testLdap(c *Context, w http.ResponseWriter, r *http.Request) {
 func getLdapGroups(c *Context, w http.ResponseWriter, r *http.Request) {
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionSysconsoleReadUserManagementGroups) {
 		c.SetPermissionError(model.PermissionSysconsoleReadUserManagementGroups)
-		return
-	}
-
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAPGroups {
-		c.Err = model.NewAppError("Api4.getLdapGroups", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
 		return
 	}
 
@@ -152,11 +138,6 @@ func linkLdapGroup(c *Context, w http.ResponseWriter, r *http.Request) {
 	auditRec := c.MakeAuditRecord("linkLdapGroup", audit.Fail)
 	defer c.LogAuditRec(auditRec)
 	auditRec.AddMeta("remote_id", c.Params.RemoteId)
-
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAPGroups {
-		c.Err = model.NewAppError("Api4.linkLdapGroup", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
 
 	ldapGroup, err := c.App.GetLdapGroup(c.Params.RemoteId)
 	if err != nil {
@@ -250,11 +231,6 @@ func unlinkLdapGroup(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAPGroups {
-		c.Err = model.NewAppError("Api4.unlinkLdapGroup", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
-		return
-	}
-
 	group, err := c.App.GetGroupByRemoteID(c.Params.RemoteId, model.GroupSourceLdap)
 	if err != nil {
 		c.Err = err
@@ -287,11 +263,6 @@ func migrateIdLdap(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
 		c.SetPermissionError(model.PermissionManageSystem)
-		return
-	}
-
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAP {
-		c.Err = model.NewAppError("Api4.idMigrateLdap", "api.ldap_groups.license_error", nil, "", http.StatusNotImplemented)
 		return
 	}
 

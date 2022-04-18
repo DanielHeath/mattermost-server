@@ -207,22 +207,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	subpath, _ := utils.GetSubpathFromConfig(c.App.Config())
 	siteURLHeader := app.GetProtocol(r) + "://" + r.Host + subpath
-	if c.App.Channels().License() != nil && *c.App.Channels().License().Features.Cloud {
-		siteURLHeader = *c.App.Config().ServiceSettings.SiteURL + subpath
-	}
 	c.SetSiteURLHeader(siteURLHeader)
 
 	w.Header().Set(model.HeaderRequestId, c.AppContext.RequestId())
-	w.Header().Set(model.HeaderVersionId, fmt.Sprintf("%v.%v.%v.%v", model.CurrentVersion, model.BuildNumber, c.App.ClientConfigHash(), c.App.Channels().License() != nil))
+	w.Header().Set(model.HeaderVersionId, fmt.Sprintf("%v.%v.%v.%v", model.CurrentVersion, model.BuildNumber, c.App.ClientConfigHash(), true))
 
 	if *c.App.Config().ServiceSettings.TLSStrictTransport {
 		w.Header().Set("Strict-Transport-Security", fmt.Sprintf("max-age=%d", *c.App.Config().ServiceSettings.TLSStrictTransportMaxAge))
 	}
 
 	cloudCSP := ""
-	if c.App.Channels().License() != nil && *c.App.Channels().License().Features.Cloud {
-		cloudCSP = " js.stripe.com/v3"
-	}
 
 	if h.IsStatic {
 		// Instruct the browser not to display us in an iframe unless is the same origin for anti-clickjacking
@@ -272,16 +266,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		h.checkCSRFToken(c, r, token, tokenLocation, session)
-	} else if token != "" && c.App.Channels().License() != nil && *c.App.Channels().License().Features.Cloud && tokenLocation == app.TokenLocationCloudHeader {
-		// Check to see if this provided token matches our CWS Token
-		session, err := c.App.GetCloudSession(token)
-		if err != nil {
-			c.Logger.Warn("Invalid CWS token", mlog.Err(err))
-			c.Err = err
-		} else {
-			c.AppContext.SetSession(session)
-		}
-	} else if token != "" && c.App.Channels().License() != nil && *c.App.Channels().License().Features.RemoteClusterService && tokenLocation == app.TokenLocationRemoteClusterHeader {
+	} else if token != "" && tokenLocation == app.TokenLocationRemoteClusterHeader {
 		// Get the remote cluster
 		if remoteId := c.GetRemoteID(r); remoteId == "" {
 			c.Logger.Warn("Missing remote cluster id") //

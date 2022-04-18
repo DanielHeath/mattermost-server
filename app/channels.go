@@ -32,13 +32,6 @@ type configSvc interface {
 	SaveConfig(newCfg *model.Config, sendConfigChangeClusterMessage bool) (*model.Config, *model.Config, *model.AppError)
 }
 
-// licenseSvc is added to act as a starting point for future integrated products.
-// It has the same signature and functionality with the license related APIs of the plugin-api.
-type licenseSvc interface {
-	GetLicense() *model.License
-	RequestTrialLicense(requesterID string, users int, termsAccepted bool, receiveEmailsAccepted bool) *model.AppError
-}
-
 // namer is an interface which enforces that
 // all services can return their names.
 type namer interface {
@@ -47,10 +40,9 @@ type namer interface {
 
 // Channels contains all channels related state.
 type Channels struct {
-	srv        *Server
-	cfgSvc     configSvc
-	filestore  filestore.FileBackend
-	licenseSvc licenseSvc
+	srv       *Server
+	cfgSvc    configSvc
+	filestore filestore.FileBackend
 
 	postActionCookieSecret []byte
 
@@ -102,7 +94,6 @@ func init() {
 		},
 		Dependencies: map[ServiceKey]struct{}{
 			ConfigKey:    {},
-			LicenseKey:   {},
 			FilestoreKey: {},
 		},
 	})
@@ -122,7 +113,6 @@ func NewChannels(s *Server, services map[ServiceKey]interface{}) (*Channels, err
 	// 4. Add a new case in the switch statement.
 	requiredServices := []ServiceKey{
 		ConfigKey,
-		LicenseKey,
 		FilestoreKey,
 	}
 	for _, svcKey := range requiredServices {
@@ -148,16 +138,6 @@ func NewChannels(s *Server, services map[ServiceKey]interface{}) (*Channels, err
 				return nil, errors.New("Filestore service did not satisfy FileBackend interface")
 			}
 			ch.filestore = filestore
-		case LicenseKey:
-			svc, ok := svc.(licenseSvc)
-			if !ok {
-				return nil, errors.New("License service did not satisfy licenseSvc interface")
-			}
-			_, ok = svc.(namer)
-			if !ok {
-				return nil, errors.New("License service does not contain Name method")
-			}
-			ch.licenseSvc = svc
 		}
 	}
 	// We are passing a partially filled Channels struct so that the enterprise
@@ -284,13 +264,4 @@ func (ch *Channels) AddConfigListener(listener func(*model.Config, *model.Config
 
 func (ch *Channels) RemoveConfigListener(id string) {
 	ch.cfgSvc.RemoveConfigListener(id)
-}
-
-func (ch *Channels) License() *model.License {
-	return ch.licenseSvc.GetLicense()
-}
-
-func (ch *Channels) RequestTrialLicense(requesterID string, users int, termsAccepted bool, receiveEmailsAccepted bool) *model.AppError {
-	return ch.licenseSvc.RequestTrialLicense(requesterID, users, termsAccepted,
-		receiveEmailsAccepted)
 }

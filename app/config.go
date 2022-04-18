@@ -366,8 +366,8 @@ func (a *App) PostActionCookieSecret() []byte {
 }
 
 func (ch *Channels) regenerateClientConfig() {
-	clientConfig := config.GenerateClientConfig(ch.cfgSvc.Config(), ch.srv.TelemetryId(), ch.srv.License())
-	limitedClientConfig := config.GenerateLimitedClientConfig(ch.cfgSvc.Config(), ch.srv.TelemetryId(), ch.srv.License())
+	clientConfig := config.GenerateClientConfig(ch.cfgSvc.Config(), ch.srv.TelemetryId())
+	limitedClientConfig := config.GenerateLimitedClientConfig(ch.cfgSvc.Config(), ch.srv.TelemetryId())
 
 	if clientConfig["EnableCustomTermsOfService"] == "true" {
 		termsOfService, err := ch.srv.Store.TermsOfService().GetLatest(true)

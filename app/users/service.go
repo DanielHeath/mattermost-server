@@ -24,7 +24,6 @@ type UserService struct {
 	metrics      einterfaces.MetricsInterface
 	cluster      einterfaces.ClusterInterface
 	config       func() *model.Config
-	license      func() *model.License
 }
 
 // ServiceConfig is used to initialize the UserService.
@@ -34,7 +33,6 @@ type ServiceConfig struct {
 	SessionStore store.SessionStore
 	OAuthStore   store.OAuthStore
 	ConfigFn     func() *model.Config
-	LicenseFn    func() *model.License
 	// Optional fields
 	Metrics einterfaces.MetricsInterface
 	Cluster einterfaces.ClusterInterface
@@ -64,7 +62,6 @@ func New(c ServiceConfig) (*UserService, error) {
 		sessionStore: c.SessionStore,
 		oAuthStore:   c.OAuthStore,
 		config:       c.ConfigFn,
-		license:      c.LicenseFn,
 		metrics:      c.Metrics,
 		cluster:      c.Cluster,
 		sessionCache: sessionCache,
@@ -77,7 +74,7 @@ func New(c ServiceConfig) (*UserService, error) {
 }
 
 func (c *ServiceConfig) validate() error {
-	if c.ConfigFn == nil || c.UserStore == nil || c.SessionStore == nil || c.OAuthStore == nil || c.LicenseFn == nil {
+	if c.ConfigFn == nil || c.UserStore == nil || c.SessionStore == nil || c.OAuthStore == nil {
 		return errors.New("required parameters are not provided")
 	}
 

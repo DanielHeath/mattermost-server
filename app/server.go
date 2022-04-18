@@ -148,8 +148,6 @@ type Server struct {
 
 	licenseValue       atomic.Value
 	clientLicenseValue atomic.Value
-	licenseListeners   map[string]func(*model.License, *model.License)
-	licenseWrapper     *licenseWrapper
 
 	timezones *timezones.Timezones
 
@@ -160,11 +158,8 @@ type Server struct {
 	statusCache             cache.Cache
 	openGraphDataCache      cache.Cache
 	configListenerId        string
-	licenseListenerId       string
 	clusterLeaderListenerId string
 	searchConfigListenerId  string
-	searchLicenseListenerId string
-	loggerLicenseListenerId string
 	configStore             *configWrapper
 	filestore               filestore.FileBackend
 
@@ -189,10 +184,9 @@ type Server struct {
 
 	SearchEngine *searchengine.Broker
 
-	Cluster        einterfaces.ClusterInterface
-	Cloud          einterfaces.CloudInterface
-	Metrics        einterfaces.MetricsInterface
-	LicenseManager einterfaces.LicenseInterface
+	Cluster einterfaces.ClusterInterface
+	Cloud   einterfaces.CloudInterface
+	Metrics einterfaces.MetricsInterface
 
 	CacheProvider cache.Provider
 
@@ -217,10 +211,9 @@ func NewServer(options ...Option) (*Server, error) {
 		WebSocketRouter: &WebSocketRouter{
 			handlers: make(map[string]webSocketHandler),
 		},
-		licenseListeners: map[string]func(*model.License, *model.License){},
-		hashSeed:         maphash.MakeSeed(),
-		timezones:        timezones.New(),
-		products:         make(map[string]Product),
+		hashSeed:  maphash.MakeSeed(),
+		timezones: timezones.New(),
+		products:  make(map[string]Product),
 	}
 
 	for _, option := range options {
@@ -311,11 +304,6 @@ func NewServer(options ...Option) (*Server, error) {
 				searchStore.UpdateConfig(cfg)
 			})
 
-			s.sqlStore.UpdateLicense(s.License())
-			s.AddLicenseListener(func(oldLicense, newLicense *model.License) {
-				s.sqlStore.UpdateLicense(newLicense)
-			})
-
 			return timerlayer.New(
 				searchStore,
 				s.Metrics,
@@ -336,7 +324,6 @@ func NewServer(options ...Option) (*Server, error) {
 		ConfigFn:     s.Config,
 		Metrics:      s.Metrics,
 		Cluster:      s.Cluster,
-		LicenseFn:    s.License,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create users service")
@@ -351,24 +338,14 @@ func NewServer(options ...Option) (*Server, error) {
 		return nil, errors.Wrap(err, "Unable to create status cache")
 	}
 
-	if model.BuildEnterpriseReady == "true" {
-		// Dependent on user service
-		s.LoadLicense()
-	}
-
-	license := s.License()
 	// Step 7: Initialize filestore
-	backend, err := filestore.NewFileBackend(s.Config().FileSettings.ToFileBackendSettings(license != nil && *license.Features.Compliance))
+	backend, err := filestore.NewFileBackend(s.Config().FileSettings.ToFileBackendSettings(true))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize filebackend")
 	}
 	s.filestore = backend
 
 	channelWrapper := &channelsWrapper{
-		srv: s,
-	}
-
-	s.licenseWrapper = &licenseWrapper{
 		srv: s,
 	}
 
@@ -383,7 +360,6 @@ func NewServer(options ...Option) (*Server, error) {
 		Users:        s.userService,
 		WebHub:       s,
 		ConfigFn:     s.Config,
-		LicenseFn:    s.License,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create teams service")
@@ -392,7 +368,6 @@ func NewServer(options ...Option) (*Server, error) {
 	serviceMap := map[ServiceKey]interface{}{
 		ChannelKey:   channelWrapper,
 		ConfigKey:    s.configStore,
-		LicenseKey:   s.licenseWrapper,
 		FilestoreKey: s.filestore,
 		ClusterKey:   s.clusterWrapper,
 		TeamKey:      s.teamService,
@@ -507,22 +482,11 @@ func NewServer(options ...Option) (*Server, error) {
 			return
 		}
 	})
-	s.licenseListenerId = s.AddLicenseListener(func(oldLicense, newLicense *model.License) {
-		s.Channels().regenerateClientConfig()
-
-		message := model.NewWebSocketEvent(model.WebsocketEventLicenseChanged, "", "", "", nil)
-		message.Add("license", s.GetSanitizedClientLicense())
-		s.Go(func() {
-			s.Publish(message)
-		})
-
-	})
 
 	s.telemetryService = telemetry.New(New(ServerConnector(s.Channels())), s.Store, s.SearchEngine, s.Log)
 
 	emailService, err := email.NewService(email.ServiceConfig{
 		ConfigFn:           s.Config,
-		LicenseFn:          s.License,
 		GoFn:               s.Go,
 		TemplatesContainer: s.TemplatesContainer(),
 		UserService:        s.userService,
@@ -581,7 +545,7 @@ func NewServer(options ...Option) (*Server, error) {
 	mlog.Info("Printing current working", mlog.String("directory", pwd))
 	mlog.Info("Loaded config", mlog.String("source", s.configStore.String()))
 
-	allowAdvancedLogging := license != nil && *license.Features.AdvancedLogging
+	allowAdvancedLogging := true
 
 	if s.Audit == nil {
 		s.Audit = &audit.Audit{}
@@ -591,13 +555,7 @@ func NewServer(options ...Option) (*Server, error) {
 		}
 	}
 
-	s.removeUnlicensedLogTargets(license)
 	s.enableLoggingMetrics()
-
-	s.loggerLicenseListenerId = s.AddLicenseListener(func(oldLicense, newLicense *model.License) {
-		s.removeUnlicensedLogTargets(newLicense)
-		s.enableLoggingMetrics()
-	})
 
 	// Enable developer settings if this is a "dev" build
 	if model.BuildNumber == "dev" {
@@ -608,22 +566,9 @@ func NewServer(options ...Option) (*Server, error) {
 		s.SetupMetricsServer()
 	}
 
-	s.AddLicenseListener(func(oldLicense, newLicense *model.License) {
-		if (oldLicense == nil && newLicense == nil) || !s.startMetrics {
-			return
-		}
-
-		if oldLicense != nil && newLicense != nil && *oldLicense.Features.Metrics == *newLicense.Features.Metrics {
-			return
-		}
-
-		s.SetupMetricsServer()
-	})
-
 	s.SearchEngine.UpdateConfig(s.Config())
-	searchConfigListenerId, searchLicenseListenerId := s.StartSearchEngine()
+	searchConfigListenerId := s.StartSearchEngine()
 	s.searchConfigListenerId = searchConfigListenerId
-	s.searchLicenseListenerId = searchLicenseListenerId
 
 	// if enabled - perform initial product notices fetch
 	if *s.Config().AnnouncementSettings.AdminNoticesEnabled || *s.Config().AnnouncementSettings.UserNoticesEnabled {
@@ -659,7 +604,6 @@ func NewServer(options ...Option) (*Server, error) {
 	if s.runEssentialJobs {
 		s.Go(func() {
 			appInstance := New(ServerConnector(s.Channels()))
-			s.runLicenseExpirationCheckJob()
 			s.runInactivityCheckJob()
 			runDNDStatusExpireJob(appInstance)
 		})
@@ -847,39 +791,7 @@ func (s *Server) configureLogger(name string, logger *mlog.Logger, logSettings *
 	return nil
 }
 
-// removeUnlicensedLogTargets removes any unlicensed log target types.
-func (s *Server) removeUnlicensedLogTargets(license *model.License) {
-	if license != nil && *license.Features.AdvancedLogging {
-		// advanced logging enabled via license; no need to remove any targets
-		return
-	}
-
-	timeoutCtx, cancelCtx := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelCtx()
-
-	s.Log.RemoveTargets(timeoutCtx, func(ti mlog.TargetInfo) bool {
-		return ti.Type != "*targets.Writer" && ti.Type != "*targets.File"
-	})
-
-	s.NotificationsLog.RemoveTargets(timeoutCtx, func(ti mlog.TargetInfo) bool {
-		return ti.Type != "*targets.Writer" && ti.Type != "*targets.File"
-	})
-}
-
-func (s *Server) startInterClusterServices(license *model.License) error {
-	if license == nil {
-		mlog.Debug("No license provided; Remote Cluster services disabled")
-		return nil
-	}
-
-	// Remote Cluster service
-
-	// License check
-	if !*license.Features.RemoteClusterService {
-		mlog.Debug("License does not have Remote Cluster services enabled")
-		return nil
-	}
-
+func (s *Server) startInterClusterServices() error {
 	// Config check
 	if !*s.Config().ExperimentalSettings.EnableRemoteClusterService {
 		mlog.Debug("Remote Cluster Service disabled via config")
@@ -902,12 +814,6 @@ func (s *Server) startInterClusterServices(license *model.License) error {
 	s.serviceMux.Unlock()
 
 	// Shared Channels service
-
-	// License check
-	if !*license.Features.SharedChannels {
-		mlog.Debug("License does not have shared channels enabled")
-		return nil
-	}
 
 	// Config check
 	if !*s.Config().ExperimentalSettings.EnableSharedChannels {
@@ -978,8 +884,6 @@ func (s *Server) Shutdown() {
 	defer sentry.Flush(2 * time.Second)
 
 	s.HubStop()
-	s.RemoveLicenseListener(s.licenseListenerId)
-	s.RemoveLicenseListener(s.loggerLicenseListenerId)
 	s.RemoveClusterLeaderChangedListener(s.clusterLeaderListenerId)
 
 	if s.tracer != nil {
@@ -1412,7 +1316,7 @@ func (s *Server) Start() error {
 		}
 	}
 
-	if err := s.startInterClusterServices(s.License()); err != nil {
+	if err := s.startInterClusterServices(); err != nil {
 		mlog.Error("Error starting inter-cluster services", mlog.Err(err))
 	}
 
@@ -1519,13 +1423,6 @@ func runConfigCleanupJob(s *Server) {
 func (s *Server) runInactivityCheckJob() {
 	model.CreateRecurringTask("Server inactivity Check", func() {
 		s.doInactivityCheck()
-	}, time.Hour*24)
-}
-
-func (s *Server) runLicenseExpirationCheckJob() {
-	s.doLicenseExpirationCheck()
-	model.CreateRecurringTask("License Expiration Check", func() {
-		s.doLicenseExpirationCheck()
 	}, time.Hour*24)
 }
 
@@ -1701,131 +1598,7 @@ func (s *Server) startMetricsServer() {
 	s.Log.Info("Metrics and profiling server is started", mlog.String("address", l.Addr().String()))
 }
 
-func (s *Server) sendLicenseUpForRenewalEmail(users map[string]*model.User, license *model.License) *model.AppError {
-	key := model.LicenseUpForRenewalEmailSent + license.Id
-	if _, err := s.Store.System().GetByName(key); err == nil {
-		// return early because the key already exists and that means we already executed the code below to send email successfully
-		return nil
-	}
-
-	daysToExpiration := license.DaysToExpiration()
-
-	renewalLink, _, appErr := s.GenerateLicenseRenewalLink()
-	if appErr != nil {
-		return model.NewAppError("s.sendLicenseUpForRenewalEmail", "api.server.license_up_for_renewal.error_generating_link", nil, appErr.Error(), http.StatusInternalServerError)
-	}
-
-	// we want to at least have one email sent out to an admin
-	countNotOks := 0
-
-	for _, user := range users {
-		name := user.FirstName
-		if name == "" {
-			name = user.Username
-		}
-		if err := s.EmailService.SendLicenseUpForRenewalEmail(user.Email, name, user.Locale, *s.Config().ServiceSettings.SiteURL, renewalLink, daysToExpiration); err != nil {
-			mlog.Error("Error sending license up for renewal email to", mlog.String("user_email", user.Email), mlog.Err(err))
-			countNotOks++
-		}
-	}
-
-	// if not even one admin got an email, we consider that this operation errored
-	if countNotOks == len(users) {
-		return model.NewAppError("s.sendLicenseUpForRenewalEmail", "api.server.license_up_for_renewal.error_sending_email", nil, "", http.StatusInternalServerError)
-	}
-
-	system := model.System{
-		Name:  key,
-		Value: "true",
-	}
-
-	if err := s.Store.System().Save(&system); err != nil {
-		mlog.Debug("Failed to mark license up for renewal email sending as completed.", mlog.Err(err))
-	}
-
-	return nil
-}
-
-func (s *Server) doLicenseExpirationCheck() {
-	s.LoadLicense()
-
-	// This takes care of a rare edge case reported here https://mattermost.atlassian.net/browse/MM-40962
-	// To reproduce that case locally, attach a license to a server that was started with enterprise enabled
-	// Then restart using BUILD_ENTERPRISE=false make restart-server to enter Team Edition
-	if model.BuildEnterpriseReady != "true" {
-		mlog.Debug("Skipping license expiration check because no license is expected on Team Edition")
-		return
-	}
-
-	license := s.License()
-
-	if license == nil {
-		mlog.Debug("License cannot be found.")
-		return
-	}
-
-	if *license.Features.Cloud {
-		mlog.Debug("Skipping license expiration check for Cloud")
-		return
-	}
-
-	users, err := s.Store.User().GetSystemAdminProfiles()
-	if err != nil {
-		mlog.Error("Failed to get system admins for license expired message from Mattermost.")
-		return
-	}
-
-	if license.IsWithinExpirationPeriod() {
-		appErr := s.sendLicenseUpForRenewalEmail(users, license)
-		if appErr != nil {
-			mlog.Debug(appErr.Error())
-		}
-		return
-	}
-
-	if !license.IsPastGracePeriod() {
-		mlog.Debug("License is not past the grace period.")
-		return
-	}
-
-	renewalLink, _, appErr := s.GenerateLicenseRenewalLink()
-	if appErr != nil {
-		mlog.Error("Error while sending the license expired email.", mlog.Err(appErr))
-		return
-	}
-
-	//send email to admin(s)
-	for _, user := range users {
-		user := user
-		if user.Email == "" {
-			mlog.Error("Invalid system admin email.", mlog.String("user_email", user.Email))
-			continue
-		}
-
-		mlog.Debug("Sending license expired email.", mlog.String("user_email", user.Email))
-		s.Go(func() {
-			if err := s.SendRemoveExpiredLicenseEmail(user.Email, renewalLink, user.Locale, *s.Config().ServiceSettings.SiteURL); err != nil {
-				mlog.Error("Error while sending the license expired email.", mlog.String("user_email", user.Email), mlog.Err(err))
-			}
-		})
-	}
-
-	//remove the license
-	s.RemoveLicense()
-}
-
-// SendRemoveExpiredLicenseEmail formats an email and uses the email service to send the email to user with link pointing to CWS
-// to renew the user license
-func (s *Server) SendRemoveExpiredLicenseEmail(email string, renewalLink, locale, siteURL string) *model.AppError {
-
-	if err := s.EmailService.SendRemoveExpiredLicenseEmail(renewalLink, email, locale, siteURL); err != nil {
-		return model.NewAppError("SendRemoveExpiredLicenseEmail", "api.license.remove_expired_license.failed.error", nil, err.Error(), http.StatusInternalServerError)
-	}
-
-	return nil
-}
-
-func (s *Server) StartSearchEngine() (string, string) {
+func (s *Server) StartSearchEngine() string {
 	if s.SearchEngine.ElasticsearchEngine != nil && s.SearchEngine.ElasticsearchEngine.IsActive() {
 		s.Go(func() {
 			if err := s.SearchEngine.ElasticsearchEngine.Start(); err != nil {
@@ -1866,35 +1639,11 @@ func (s *Server) StartSearchEngine() (string, string) {
 		}
 	})
 
-	licenseListenerId := s.AddLicenseListener(func(oldLicense, newLicense *model.License) {
-		if s.SearchEngine == nil {
-			return
-		}
-		if oldLicense == nil && newLicense != nil {
-			if s.SearchEngine.ElasticsearchEngine != nil && s.SearchEngine.ElasticsearchEngine.IsActive() {
-				s.Go(func() {
-					if err := s.SearchEngine.ElasticsearchEngine.Start(); err != nil {
-						mlog.Error(err.Error())
-					}
-				})
-			}
-		} else if oldLicense != nil && newLicense == nil {
-			if s.SearchEngine.ElasticsearchEngine != nil {
-				s.Go(func() {
-					if err := s.SearchEngine.ElasticsearchEngine.Stop(); err != nil {
-						mlog.Error(err.Error())
-					}
-				})
-			}
-		}
-	})
-
-	return configListenerId, licenseListenerId
+	return configListenerId
 }
 
 func (s *Server) stopSearchEngine() {
 	s.RemoveConfigListener(s.searchConfigListenerId)
-	s.RemoveLicenseListener(s.searchLicenseListenerId)
 	if s.SearchEngine != nil && s.SearchEngine.ElasticsearchEngine != nil && s.SearchEngine.ElasticsearchEngine.IsActive() {
 		s.SearchEngine.ElasticsearchEngine.Stop()
 	}

@@ -115,19 +115,6 @@ func (r *resolver) Config(ctx context.Context) (model.StringMap, error) {
 	return c.App.ClientConfigWithComputed(), nil
 }
 
-// match with api4.getClientLicense
-func (r *resolver) License(ctx context.Context) (model.StringMap, error) {
-	c, err := getCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionReadLicenseInformation) {
-		return c.App.Srv().ClientLicense(), nil
-	}
-	return c.App.Srv().GetSanitizedClientLicense(), nil
-}
-
 // match with api4.getTeamMembersForUser for teamID=""
 // and api4.getTeamMember for teamID != ""
 func (r *resolver) TeamMembers(ctx context.Context, args struct {

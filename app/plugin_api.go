@@ -128,10 +128,6 @@ func (api *PluginAPI) GetBundlePath() (string, error) {
 	return bundlePath, err
 }
 
-func (api *PluginAPI) GetLicense() *model.License {
-	return api.app.Srv().License()
-}
-
 func (api *PluginAPI) IsEnterpriseReady() bool {
 	result, _ := strconv.ParseBool(model.BuildEnterpriseReady)
 	return result
@@ -1169,13 +1165,4 @@ func (api *PluginAPI) PublishPluginClusterEvent(ev model.PluginClusterEvent,
 	}
 
 	return nil
-}
-
-// RequestTrialLicense requests a trial license and installs it in the server
-func (api *PluginAPI) RequestTrialLicense(requesterID string, users int, termsAccepted bool, receiveEmailsAccepted bool) *model.AppError {
-	if *api.app.Config().ExperimentalSettings.RestrictSystemAdmin {
-		return model.NewAppError("RequestTrialLicense", "api.restricted_system_admin", nil, "", http.StatusForbidden)
-	}
-
-	return api.app.Channels().RequestTrialLicense(requesterID, users, termsAccepted, receiveEmailsAccepted)
 }

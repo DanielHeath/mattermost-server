@@ -25,6 +25,10 @@ import (
 )
 
 const (
+	DayInSeconds      = 24 * 60 * 60
+	DayInMilliseconds = DayInSeconds * 1000
+)
+const (
 	ConnSecurityNone     = ""
 	ConnSecurityPlain    = "PLAIN"
 	ConnSecurityTLS      = "TLS"
@@ -1482,7 +1486,6 @@ func (s *FileSettings) SetDefaults(isUpdate bool) {
 		s.AmazonS3Trace = NewBool(false)
 	}
 }
-
 func (s *FileSettings) ToFileBackendSettings(enableComplianceFeature bool) filestore.FileBackendSettings {
 	if *s.DriverName == ImageDriverLocal {
 		return filestore.FileBackendSettings{

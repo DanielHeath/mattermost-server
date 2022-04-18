@@ -56,8 +56,7 @@ func (us *UserService) GetProfileImage(user *model.User) ([]byte, bool, error) {
 }
 
 func (us *UserService) FileBackend() (filestore.FileBackend, error) {
-	license := us.license()
-	backend, err := filestore.NewFileBackend(us.config().FileSettings.ToFileBackendSettings(license != nil && *license.Features.Compliance))
+	backend, err := filestore.NewFileBackend(us.config().FileSettings.ToFileBackendSettings(true))
 	if err != nil {
 		return nil, err
 	}

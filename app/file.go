@@ -80,8 +80,7 @@ func (a *App) TestFileStoreConnection() *model.AppError {
 }
 
 func (a *App) TestFileStoreConnectionWithConfig(cfg *model.FileSettings) *model.AppError {
-	license := a.Srv().License()
-	backend, err := filestore.NewFileBackend(cfg.ToFileBackendSettings(license != nil && *license.Features.Compliance))
+	backend, err := filestore.NewFileBackend(cfg.ToFileBackendSettings(true))
 	if err != nil {
 		return model.NewAppError("FileBackend", "api.file.no_driver.app_error", nil, err.Error(), http.StatusInternalServerError)
 	}

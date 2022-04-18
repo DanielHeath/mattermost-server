@@ -821,24 +821,21 @@ func (es *Service) sendMail(to, subject, htmlBody string) error {
 }
 
 func (es *Service) sendEmailWithCustomReplyTo(to, subject, htmlBody, replyToAddress string) error {
-	license := es.license()
 	mailConfig := es.mailServiceConfig(replyToAddress)
 
-	return mail.SendMailUsingConfig(to, subject, htmlBody, mailConfig, license != nil && *license.Features.Compliance, "")
+	return mail.SendMailUsingConfig(to, subject, htmlBody, mailConfig, true, "")
 }
 
 func (es *Service) sendMailWithCC(to, subject, htmlBody string, ccMail string) error {
-	license := es.license()
 	mailConfig := es.mailServiceConfig("")
 
-	return mail.SendMailUsingConfig(to, subject, htmlBody, mailConfig, license != nil && *license.Features.Compliance, ccMail)
+	return mail.SendMailUsingConfig(to, subject, htmlBody, mailConfig, true, ccMail)
 }
 
 func (es *Service) SendMailWithEmbeddedFiles(to, subject, htmlBody string, embeddedFiles map[string]io.Reader) error {
-	license := es.license()
 	mailConfig := es.mailServiceConfig("")
 
-	return mail.SendMailWithEmbeddedFilesUsingConfig(to, subject, htmlBody, embeddedFiles, mailConfig, license != nil && *license.Features.Compliance, "")
+	return mail.SendMailWithEmbeddedFilesUsingConfig(to, subject, htmlBody, embeddedFiles, mailConfig, true, "")
 }
 
 func (es *Service) InvalidateVerifyEmailTokensForUser(userID string) *model.AppError {
